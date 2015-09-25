@@ -38,6 +38,7 @@ import java.util.Iterator;
 
 import cc.softwarefactory.lokki.android.MainApplication;
 import cc.softwarefactory.lokki.android.R;
+import cc.softwarefactory.lokki.android.ResultListener;
 import cc.softwarefactory.lokki.android.avatar.AvatarLoader;
 import cc.softwarefactory.lokki.android.datasources.contacts.ContactDataSource;
 import cc.softwarefactory.lokki.android.datasources.contacts.DefaultContactDataSource;
@@ -59,6 +60,7 @@ public class AddContactsFragment extends Fragment {
     private EditText inputSearch;
     private Button clearFilter;
     private ArrayAdapter<String> adapter;
+    private TextView noContactsMessage;
 
     public AddContactsFragment() {
         contactList = new ArrayList<>();
@@ -74,6 +76,10 @@ public class AddContactsFragment extends Fragment {
         context = getActivity().getApplicationContext();
         avatarLoader = new AvatarLoader(context);
         inputSearch = (EditText) rootView.findViewById(R.id.add_contact_search);
+        inputSearch.setEnabled(false);
+        inputSearch.setAlpha(0);
+        noContactsMessage = (TextView) rootView.findViewById(R.id.no_contacts_message);
+        noContactsMessage.setText(R.string.no_contacts_to_show);
         clearFilter = (Button) rootView.findViewById(R.id.clear_filter);
 
         return rootView;
@@ -182,7 +188,8 @@ public class AddContactsFragment extends Fragment {
                 super.onPostExecute(MainApplication.contacts);
                 return;
             }
-            //Log.e(TAG, "Number of contacts: " + (contactsResult.length() - 1));
+            Log.d(TAG, "Number of contacts: " + (contactsResult.length() - 1));
+            Log.d(TAG, "Contacts: " + contactsResult);
             try {
                 MainApplication.contacts = contactsResult;
                 MainApplication.mapping = MainApplication.contacts.getJSONObject("mapping");
@@ -268,6 +275,10 @@ public class AddContactsFragment extends Fragment {
                     String contactName = getItem(position);
                     final String email = MainApplication.mapping.getString(contactName);
 
+                    inputSearch.setEnabled(true);
+                    inputSearch.setAlpha(1);
+                    noContactsMessage.setAlpha(0);
+
                     avatarLoader.load(email, holder.photo);
 
                     aq.id(holder.name).text(contactName);
@@ -289,17 +300,27 @@ public class AddContactsFragment extends Fragment {
                                     .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                            try {
-                                                AnalyticsUtils.eventHit(getString(R.string.analytics_category_ux),
-                                                        getString(R.string.analytics_action_click),
-                                                        getString(R.string.analytics_label_confirm_contact_add_from_list_dialog));
-                                                ServerApi.allowPeople(context, email);
-                                                ContactUtils.addLocalContact(context, email);
-                                                contactList.remove(position);
-                                                notifyDataSetChanged();
-                                                Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
-                                            } catch (JSONException e) {
-                                                e.printStackTrace();
+                                            AnalyticsUtils.eventHit(getString(R.string.analytics_category_ux),
+                                                    getString(R.string.analytics_action_click),
+                                                    getString(R.string.analytics_label_confirm_contact_add_from_list_dialog));
+
+                                            if(ContactUtils.isSelf(context, email)) {
+                                                Toast.makeText(context, R.string.cant_add_self_as_contact, Toast.LENGTH_LONG).show();
+                                            } else {
+                                                ServerApi.allowPeople(context, email, new ResultListener(TAG, "add contact") {
+                                                    @Override
+                                                    public void onError(String message) {
+                                                        Toast.makeText(context, R.string.unable_to_add_contact, Toast.LENGTH_LONG).show();
+                                                    }
+
+                                                    @Override
+                                                    public void onSuccess(String message) {
+                                                        ContactUtils.addLocalContact(context, email);
+                                                        contactList.remove(position);
+                                                        notifyDataSetChanged();
+                                                        Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
+                                                    }
+                                                });
                                             }
                                         }
                                     })
@@ -364,15 +385,24 @@ public class AddContactsFragment extends Fragment {
                         AnalyticsUtils.eventHit(context.getString(R.string.analytics_category_ux),
                                 context.getString(R.string.analytics_action_click),
                                 context.getString(R.string.analytics_label_confirm_contact_add_from_email_dialog_successful));
-                        String email = value.toString();
-                        try {
-                            ServerApi.allowPeople(context, email);
-                            ContactUtils.addLocalContact(context, email);
-                            Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+                        final String email = value.toString();
 
+                        if(ContactUtils.isSelf(context, email)) {
+                            Toast.makeText(context, R.string.cant_add_self_as_contact, Toast.LENGTH_LONG).show();
+                        } else {
+                            ServerApi.allowPeople(context, email, new ResultListener(TAG, "add contact from email") {
+                                @Override
+                                public void onError(String message) {
+                                    Toast.makeText(context, R.string.unable_to_add_contact, Toast.LENGTH_LONG).show();
+                                }
+
+                                @Override
+                                public void onSuccess(String message) {
+                                    ContactUtils.addLocalContact(context, email);
+                                    Toast.makeText(context, R.string.contact_added, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
                         addContactDialog.dismiss();
                     }
                 });

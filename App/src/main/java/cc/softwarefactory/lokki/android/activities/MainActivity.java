@@ -26,12 +26,17 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
+import com.androidquery.AQuery;
+
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import cc.softwarefactory.lokki.android.MainApplication;
 import cc.softwarefactory.lokki.android.R;
+import cc.softwarefactory.lokki.android.ResultListener;
 import cc.softwarefactory.lokki.android.datasources.contacts.ContactDataSource;
 import cc.softwarefactory.lokki.android.datasources.contacts.DefaultContactDataSource;
 import cc.softwarefactory.lokki.android.fragments.AboutFragment;
@@ -71,10 +76,6 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
     private ContactDataSource mContactDataSource;
 
-    // TODO: make non static, put in shared prefs
-    public static Boolean firstTimeLaunch;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -86,8 +87,19 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
         mTitle = getTitle();
 
+        // Create the navigation drawer
         mNavigationDrawerFragment = (NavigationDrawerFragment) getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
-        mNavigationDrawerFragment.setUp(R.id.navigation_drawer, (DrawerLayout) findViewById(R.id.drawer_layout)); // Set up the drawer.
+        mNavigationDrawerFragment.setUp(R.id.navigation_drawer, (DrawerLayout) findViewById(R.id.drawer_layout));
+
+        // Set up the callback for the user menu button
+        AQuery aq = new AQuery(findViewById(R.id.drawer_layout));
+        aq.id(R.id.user_popout_menu_button).clicked(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "Clicked user menu button");
+                showUserPopupMenu(v);
+            }
+        });
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_layout);
         setSupportActionBar(toolbar);
@@ -98,6 +110,33 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         }
     }
 
+    /**
+     * Displays the popout user menu containing the Sign Out button
+     * @param v The UI element that was clicked to show the menu
+     */
+    public void showUserPopupMenu(View v){
+        PopupMenu menu = new PopupMenu(this, v);
+        menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener(){
+            @Override
+            public boolean onMenuItemClick(MenuItem item){
+                switch (item.getItemId()){
+                    // User clicked the Sign Out option
+                    case R.id.signout :
+                        // Close the drawer so it isn't open when you log back in
+                        mNavigationDrawerFragment.toggleDrawer();
+                        // Sign the user out
+                        logout();
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+        menu.inflate(R.menu.user_menu);
+        menu.show();
+
+    }
+
 
     @Override
     protected void onStart() {
@@ -105,21 +144,39 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         super.onStart();
         //Log.e(TAG, "onStart");
 
-        if (firstTimeLaunch == null) {
-            firstTimeLaunch = firstTimeLaunch();
-        }
-
-        if (firstTimeLaunch) {
-            //Log.e(TAG, "onStart - firstTimeLaunch, so showing terms.");
+        if (firstTimeLaunch()) {
+            Log.i(TAG, "onStart - firstTimeLaunch, so showing terms.");
             startActivityForResult(new Intent(this, FirstTimeActivity.class), REQUEST_TERMS);
         } else {
-            checkIfUserIsLoggedIn(); // Log user In
+            signUserIn();
         }
+
     }
 
+    /**
+     * Is this the first time the app has been launched?
+     * @return  true, if the app hasn't been launched before
+     */
     private boolean firstTimeLaunch() {
+        return !PreferenceUtils.getBoolean(this, PreferenceUtils.KEY_NOT_FIRST_TIME_LAUNCH);
+    }
 
-        return PreferenceUtils.getString(this, PreferenceUtils.KEY_AUTH_TOKEN).isEmpty();
+    /**
+     * Is the user currently logged in?
+     * NOTE: this doesn't guarantee that all user information has already been fetched from the server,
+     * but it guarantees that the information can be safely fetched.
+     * @return  true, if the user has signed in
+     */
+    public boolean loggedIn() {
+        String userAccount = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ACCOUNT);
+        String userId = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ID);
+        String authorizationToken = PreferenceUtils.getString(this, PreferenceUtils.KEY_AUTH_TOKEN);
+
+        Log.i(TAG, "User email: " + userAccount);
+        Log.i(TAG, "User id: " + userId);
+        Log.i(TAG, "authorizationToken: " + authorizationToken);
+
+        return !(userId.isEmpty() || userAccount.isEmpty() || authorizationToken.isEmpty());
     }
 
     @Override
@@ -129,13 +186,13 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         //Log.e(TAG, "onResume");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // WAKE_LOCK
 
-        if (firstTimeLaunch || firstTimeLaunch()) {
-            //Log.e(TAG, "onResume - firstTimeLaunch, so avoiding launching services.");
+        if (!loggedIn()) {
+            Log.i(TAG, "onResume - user NOT logged in, so avoiding launching services.");
             return;
         }
 
 
-        //Log.e(TAG, "onResume - NOT firstTimeLaunch, so launching services.");
+        Log.i(TAG, "onResume - user logged in, so launching services.");
         startServices();
         LocalBroadcastManager.getInstance(this).registerReceiver(exitMessageReceiver, new IntentFilter("EXIT"));
         LocalBroadcastManager.getInstance(this).registerReceiver(switchToMapReceiver, new IntentFilter("GO-TO-MAP"));
@@ -143,8 +200,9 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
         //Log.e(TAG, "onResume - check if dashboard is null");
         if (MainApplication.dashboard == null) {
-            //Log.e(TAG, "onResume - dashboard was null, get dashboard from server");
+            Log.w(TAG, "onResume - dashboard was null, get dashboard & contacts from server");
             ServerApi.getDashboard(getApplicationContext());
+            ServerApi.getContacts(getApplicationContext());
         }
     }
 
@@ -175,38 +233,35 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         super.onPause();
     }
 
-    private void checkIfUserIsLoggedIn() {
+    /**
+     * Ensures that the user is signed in by launching the SignUpActivity if they aren't
+     */
+    private void signUserIn() {
 
-        String userAccount = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ACCOUNT);
-        String userId = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ID);
-        String authorizationToken = PreferenceUtils.getString(this, PreferenceUtils.KEY_AUTH_TOKEN);
-        boolean debug = false;
-
-        if (debug || userId.isEmpty() || userAccount.isEmpty() || authorizationToken.isEmpty()) {
+        if (!loggedIn()) {
             try {
                 startActivityForResult(new Intent(this, SignUpActivity.class), REQUEST_CODE_EMAIL);
             } catch (ActivityNotFoundException e) {
                 Toast.makeText(this, getString(R.string.general_error), Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Could not start SignUpActivity " + e);
                 finish();
             }
         } else { // User already logged-in
-            MainApplication.userAccount = userAccount;
+            MainApplication.userAccount = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ACCOUNT);
             GcmHelper.start(getApplicationContext()); // Register to GCM
-
-            //Log.e(TAG, "User email: " + userAccount);
-            //Log.e(TAG, "User id: " + userId);
-            //Log.e(TAG, "authorizationToken: " + authorizationToken);
         }
     }
 
     @Override
     public void onNavigationDrawerItemSelected(int position) {
+        // Position of the logout button
         String[] menuOptions = getResources().getStringArray(R.array.nav_drawer_options);
         FragmentManager fragmentManager = getSupportFragmentManager();
         mTitle = menuOptions[position];
         selectedOption = position;
 
         ActionBar actionBar = getSupportActionBar();
+        // set action bar title if it exists and the user isn't trying to log off
         if (actionBar != null) {
             actionBar.setTitle(mTitle);
         }
@@ -403,13 +458,17 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         if (!allow) {
             try {
                 MainApplication.iDontWantToSee.put(email, 1);
+                Log.d(TAG, MainApplication.iDontWantToSee.toString());
                 PreferenceUtils.setString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
+                ServerApi.ignoreUsers(this, email);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         } else if (MainApplication.iDontWantToSee.has(email)) {
+            Log.d(TAG, "unignoring user");
             MainApplication.iDontWantToSee.remove(email);
             PreferenceUtils.setString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
+            ServerApi.unignoreUser(this, email);
         }
     }
 
@@ -425,11 +484,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
             if (!allow) {
                 ServerApi.disallowUser(this, email);
             } else {
-                try {
-                    ServerApi.allowPeople(this, email);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+                ServerApi.allowPeople(this, email, new ResultListener(TAG, "allow user"));
             }
         }
 
@@ -472,6 +527,37 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
     // For dependency injection
     public void setContactUtils(ContactDataSource contactDataSource) {
         this.mContactDataSource = contactDataSource;
+    }
+
+    public void logout(){
+        final MainActivity main = this;
+        new AlertDialog.Builder(main)
+                .setIcon(R.drawable.ic_power_settings_new_black_48dp)
+                .setMessage(R.string.confirm_logout)
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which){
+                        //Clear logged in status
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_USER_ACCOUNT, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_USER_ID, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_AUTH_TOKEN, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_CONTACTS, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_DASHBOARD, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_LOCAL_CONTACTS, null);
+                        PreferenceUtils.setString(main, PreferenceUtils.KEY_PLACES, null);
+                        MainApplication.userAccount = null;
+                        MainApplication.dashboard = null;
+                        MainApplication.contacts = null;
+                        MainApplication.mapping = null;
+                        MainApplication.places = null;
+                        MainApplication.iDontWantToSee = new JSONObject();
+                        //Restart main activity to clear state
+                        main.recreate();
+                    }
+                })
+                .setNegativeButton(R.string.no, null)
+                .show();
     }
 
 }

@@ -25,6 +25,7 @@ import java.util.Map;
 
 import cc.softwarefactory.lokki.android.MainApplication;
 import cc.softwarefactory.lokki.android.R;
+import cc.softwarefactory.lokki.android.ResultListener;
 import cc.softwarefactory.lokki.android.constants.Constants;
 import cc.softwarefactory.lokki.android.errors.AddPlaceError;
 import cc.softwarefactory.lokki.android.services.DataService;
@@ -120,9 +121,66 @@ public class ServerApi {
         aq.ajax(url, JSONObject.class, cb);
     }
 
-    public static void allowPeople(final Context context, String email) throws JSONException {
+    /**
+     * Fetch all contact data from server
+     * @param context   The context used to store data into preferences
+     */
+    public static void getContacts(final Context context) {
 
-        //Log.e(TAG, "allowPeople");
+        //Log.d(TAG, "getContacts");
+        AQuery aq = new AQuery(context);
+
+        String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
+        String authorizationToken = PreferenceUtils.getString(context, PreferenceUtils.KEY_AUTH_TOKEN);
+        String url = ApiUrl + "user/" + userId + "/contacts";
+
+        AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(){
+            @Override
+            public void callback(String url, JSONObject json, AjaxStatus status) {
+                Log.d(TAG, "contactsCallback");
+
+                if (json == null) {
+                    Log.e(TAG, "Error fetching contacts: " + status.getCode() + " - " + status.getMessage());
+                    return;
+                }
+                Log.d(TAG, "contacts JSON returned: " + json);
+                try {
+                    //Store ignored users
+                    MainApplication.iDontWantToSee = new JSONObject();
+                    JSONArray ignored = json.getJSONArray("ignored");
+                    JSONObject idmapping = json.getJSONObject("idmapping");
+                    for (int i = 0; i < ignored.length(); i++){
+                        String email;
+                        try {
+                            email = idmapping.getString(ignored.getString(i));
+                            MainApplication.iDontWantToSee.put(email, 1);
+                        }
+                        catch (JSONException e){
+                            Log.w(TAG, "Ignore list contained unknown id: " + ignored.getString(i));
+                        }
+                    }
+                    PreferenceUtils.setString(context, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
+                    //Write all other contact data into the user dashboard
+                    MainApplication.dashboard.remove("icansee");
+                    MainApplication.dashboard.put("icansee", json.getJSONObject("icansee"));
+                    MainApplication.dashboard.remove("canseeme");
+                    MainApplication.dashboard.put("canseeme", json.getJSONArray("canseeme"));
+                    MainApplication.dashboard.remove("idmapping");
+                    MainApplication.dashboard.put("idmapping", json.getJSONObject("idmapping"));
+                    PreferenceUtils.setString(context, PreferenceUtils.KEY_DASHBOARD, MainApplication.dashboard.toString());
+                }
+                catch (JSONException e){
+                    Log.e(TAG, "Error parsing contacts JSON: " + e);
+                }
+            }
+        };
+        cb.header("authorizationtoken", authorizationToken);
+        aq.ajax(url, JSONObject.class, cb);
+    }
+
+    public static void allowPeople(final Context context, String email, final ResultListener resultListener) {
+
+        Log.d(TAG, "allowPeople");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -132,31 +190,42 @@ public class ServerApi {
         JSONArray JSONemails = new JSONArray();
         JSONemails.put(email);
 
-        JSONObject JSONdata = new JSONObject()
-                .put("emails", JSONemails);
+        try {
+            JSONObject JSONdata = new JSONObject().put("emails", JSONemails);
 
         //Log.e(TAG, "Emails to be alloweed: " + JSONdata);
 
-        AjaxCallback<String> cb = new AjaxCallback<String>() {
-            @Override
-            public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "allowPeople result code: " + status.getCode());
-                //Log.e(TAG, "allowPeople result message: " + status.getMessage());
-                //Log.e(TAG, "allowPeople ERROR: " + status.getError());
-                if (status.getError() == null) {
-                    //Log.e(TAG, "Getting new dashboard");
-                    DataService.getDashboard(context);
+            AjaxCallback<String> cb = new AjaxCallback<String>() {
+                @Override
+                public void callback(String url, String result, AjaxStatus status) {
+                    if (status.getError() == null) {
+                        Log.d(TAG, "Getting new dashboard");
+                        DataService.getDashboard(context);
+                        resultListener.handleSuccess(status.getMessage());
+                    } else
+                        resultListener.handleError(status.getMessage());
                 }
-            }
-        };
+            };
 
-        cb.header("authorizationtoken", authorizationToken);
-        aq.post(url, JSONdata, String.class, cb);
+            cb.header("authorizationtoken", authorizationToken);
+            aq.post(url, JSONdata, String.class, cb);
+        }
+        catch(JSONException e) {
+            resultListener.handleError("JSON error");
+        }
+    }
+
+    public static void logStatus(String request, AjaxStatus status) {
+        Log.d(TAG, request + " result code: " + status.getCode());
+        Log.d(TAG, request + " result message: " + status.getMessage());
+        if(status.getError() != null) {
+            Log.e(TAG, request + " ERROR: " + status.getError());
+        }
     }
 
     public static void disallowUser(final Context context, String email) {
 
-        //Log.e(TAG, "disallowUser");
+        Log.d(TAG, "disallowUser");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -165,20 +234,105 @@ public class ServerApi {
         String targetId = Utils.getIdFromEmail(context, email);
 
         if (targetId == null) {
+            Log.e(TAG, "Attempted to disallow invalid email");
             return;
         }
         url += targetId;
-        //Log.e(TAG, "Email to be disallowed: " + email + ", userIdToDisallow: " + targetId);
+        Log.d(TAG, "Email to be disallowed: " + email + ", userIdToDisallow: " + targetId);
 
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "disallowUser result code: " + status.getCode());
-                //Log.e(TAG, "disallowUser result message: " + status.getMessage());
-                //Log.e(TAG, "disallowUser ERROR: " + status.getError());
+                logStatus("disallowUser", status);
                 if (status.getError() == null) {
                     //Log.e(TAG, "Getting new dashboard");
                     DataService.getDashboard(context);
+                }
+            }
+        };
+
+        cb.header("authorizationtoken", authorizationToken);
+        aq.delete(url, String.class, cb);
+    }
+
+    /**
+     * Prevents an user from showing up on the map
+     * @param context           Context used to access data in preferences
+     * @param email             The email address to be ignored
+     * @throws JSONException
+     */
+    public static void ignoreUsers(final Context context, String email) {
+
+        Log.d(TAG, "ignoreUsers");
+        AQuery aq = new AQuery(context);
+
+        String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
+        String authorizationToken = PreferenceUtils.getString(context, PreferenceUtils.KEY_AUTH_TOKEN);
+        String url = ApiUrl + "user/" + userId + "/ignore";
+
+        String targetId = Utils.getIdFromEmail(context, email);
+        JSONArray JSONids = new JSONArray();
+        JSONids.put(targetId);
+
+        if (targetId == null) {
+            Log.e(TAG, "Attempted to ignore invalid email");
+            return;
+        }
+        JSONObject JSONdata = new JSONObject();
+        try {
+                    JSONdata.put("ids", JSONids);
+        }
+        catch (JSONException e){
+            Log.e(TAG, "Error creating ignore request: " + e);
+            return;
+        }
+
+        Log.d(TAG, "IDs to be ignored: " + JSONdata);
+
+        AjaxCallback<String> cb = new AjaxCallback<String>() {
+            @Override
+            public void callback(String url, String result, AjaxStatus status) {
+                logStatus("ignoreUsers", status);
+                if (status.getError() == null) {
+                    Log.d(TAG, "Getting new contacts");
+                    DataService.getContacts(context);
+                }
+            }
+        };
+
+        cb.header("authorizationtoken", authorizationToken);
+        aq.post(url, JSONdata, String.class, cb);
+    }
+
+    /**
+     * Allows an ignored user to appear on the map again
+     * @param context   The context used to access preferences
+     * @param email     The email of the user to be unignored
+     */
+    public static void unignoreUser(final Context context, String email) {
+
+        Log.d(TAG, "unignoreUser");
+        AQuery aq = new AQuery(context);
+
+        String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
+        String authorizationToken = PreferenceUtils.getString(context, PreferenceUtils.KEY_AUTH_TOKEN);
+        String url = ApiUrl + "user/" + userId + "/ignore/";
+        String targetId = Utils.getIdFromEmail(context, email);
+
+        if (targetId == null) {
+            Log.e(TAG, "Attempted to unignore invalid email");
+            return;
+        }
+        url += targetId;
+        Log.d(TAG, "Email to be unignored: " + email + ", userIdToDisallow: " + targetId);
+
+        AjaxCallback<String> cb = new AjaxCallback<String>() {
+            @Override
+            public void callback(String url, String result, AjaxStatus status) {
+                logStatus("ignoreUser", status);
+                if (status.getError() == null) {
+                    Log.d(TAG, "Getting new contacts");
+                    DataService.getContacts(context);
                 }
             }
         };
@@ -207,9 +361,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "sendLocation result code: " + status.getCode());
-                //Log.e(TAG, "sendLocation result message: " + status.getMessage());
-                //Log.e(TAG, "sendLocation ERROR: " + status.getError());
+                logStatus("sendLocation", status);
             }
         };
 
@@ -232,9 +384,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "sendGCMToken result code: " + status.getCode());
-                //Log.e(TAG, "sendGCMToken result message: " + status.getMessage());
-                //Log.e(TAG, "sendGCMToken ERROR: " + status.getError());
+                logStatus("sendGCMToken", status);
             }
         };
 
@@ -257,9 +407,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "requestUpdates result code: " + status.getCode());
-                //Log.e(TAG, "requestUpdates result message: " + status.getMessage());
-                //Log.e(TAG, "requestUpdates ERROR: " + status.getError());
+                logStatus("requestUpdates", status);
             }
         };
 
@@ -282,9 +430,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "setVisibility result code: " + status.getCode());
-                //Log.e(TAG, "setVisibility result message: " + status.getMessage());
-                //Log.e(TAG, "setVisibility ERROR: " + status.getError());
+                logStatus("setVisibility", status);
             }
         };
 
@@ -314,9 +460,7 @@ public class ServerApi {
         AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>() {
             @Override
             public void callback(String url, JSONObject object, AjaxStatus status) {
-                //Log.e(TAG, "addPlace result code: " + status.getCode());
-                //Log.e(TAG, "addPlace result message: " + status.getMessage());
-                //Log.e(TAG, "addPlace ERROR: " + status.getError());
+                logStatus("addPlace", status);
 
                 if (status.getError() != null) {
                     handleError(status);
@@ -356,9 +500,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "removePlace result code: " + status.getCode());
-                //Log.e(TAG, "removePlace result message: " + status.getMessage());
-                //Log.e(TAG, "removePlace ERROR: " + status.getError());
+                logStatus("removePlace", status);
                 if (status.getError() == null) {
                     //Log.e(TAG, "No error, continuing deletion.");
                     MainApplication.places.remove(placeId);
@@ -405,9 +547,7 @@ public class ServerApi {
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
-                //Log.e(TAG, "renamePlace result code: " + status.getCode());
-                //Log.e(TAG, "renamePlace result message: " + status.getMessage());
-                //Log.e(TAG, "renamePlace ERROR: " + status.getError());
+                logStatus("renamePlace", status);
 
                 if (status.getError() == null) {
                     //Log.e(TAG, "No error, place renamed.");
