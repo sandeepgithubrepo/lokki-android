@@ -66,7 +66,7 @@ public class DataService extends Service {
      */
     public static void getContacts(Context context) {
 
-        Log.d(TAG, "getContacts");
+        //Log.d(TAG, "getContacts");
         Intent contactIntent = new Intent(context, DataService.class);
         contactIntent.putExtra(GET_CONTACTS, 1);
         context.startService(contactIntent);
@@ -162,7 +162,7 @@ public class DataService extends Service {
     }
 
     private void getContacts() {
-        Log.d(TAG, "getContacts");
+        //Log.d(TAG, "getContacts");
         ServerApi.getContacts(this);
     }
 

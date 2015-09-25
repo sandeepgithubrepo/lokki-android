@@ -137,13 +137,13 @@ public class ServerApi {
         AjaxCallback<JSONObject> cb = new AjaxCallback<JSONObject>(){
             @Override
             public void callback(String url, JSONObject json, AjaxStatus status) {
-                Log.d(TAG, "contactsCallback");
+                //Log.d(TAG, "contactsCallback");
 
                 if (json == null) {
-                    Log.e(TAG, "Error fetching contacts: " + status.getCode() + " - " + status.getMessage());
+                    //Log.e(TAG, "Error fetching contacts: " + status.getCode() + " - " + status.getMessage());
                     return;
                 }
-                Log.d(TAG, "contacts JSON returned: " + json);
+                //Log.d(TAG, "contacts JSON returned: " + json);
                 try {
                     //Store ignored users
                     MainApplication.iDontWantToSee = new JSONObject();
@@ -156,7 +156,7 @@ public class ServerApi {
                             MainApplication.iDontWantToSee.put(email, 1);
                         }
                         catch (JSONException e){
-                            Log.w(TAG, "Ignore list contained unknown id: " + ignored.getString(i));
+                            //Log.w(TAG, "Ignore list contained unknown id: " + ignored.getString(i));
                         }
                     }
                     PreferenceUtils.setString(context, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
@@ -170,7 +170,7 @@ public class ServerApi {
                     PreferenceUtils.setString(context, PreferenceUtils.KEY_DASHBOARD, MainApplication.dashboard.toString());
                 }
                 catch (JSONException e){
-                    Log.e(TAG, "Error parsing contacts JSON: " + e);
+                    //Log.e(TAG, "Error parsing contacts JSON: " + e);
                 }
             }
         };
@@ -180,7 +180,7 @@ public class ServerApi {
 
     public static void allowPeople(final Context context, String email, final ResultListener resultListener) {
 
-        Log.d(TAG, "allowPeople");
+        //Log.d(TAG, "allowPeople");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -199,7 +199,7 @@ public class ServerApi {
                 @Override
                 public void callback(String url, String result, AjaxStatus status) {
                     if (status.getError() == null) {
-                        Log.d(TAG, "Getting new dashboard");
+                        //Log.d(TAG, "Getting new dashboard");
                         DataService.getDashboard(context);
                         resultListener.handleSuccess(status.getMessage());
                     } else
@@ -216,16 +216,16 @@ public class ServerApi {
     }
 
     public static void logStatus(String request, AjaxStatus status) {
-        Log.d(TAG, request + " result code: " + status.getCode());
-        Log.d(TAG, request + " result message: " + status.getMessage());
+        //Log.d(TAG, request + " result code: " + status.getCode());
+        //Log.d(TAG, request + " result message: " + status.getMessage());
         if(status.getError() != null) {
-            Log.e(TAG, request + " ERROR: " + status.getError());
+            //Log.e(TAG, request + " ERROR: " + status.getError());
         }
     }
 
     public static void disallowUser(final Context context, String email) {
 
-        Log.d(TAG, "disallowUser");
+        //Log.d(TAG, "disallowUser");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -234,11 +234,11 @@ public class ServerApi {
         String targetId = Utils.getIdFromEmail(context, email);
 
         if (targetId == null) {
-            Log.e(TAG, "Attempted to disallow invalid email");
+            //Log.e(TAG, "Attempted to disallow invalid email");
             return;
         }
         url += targetId;
-        Log.d(TAG, "Email to be disallowed: " + email + ", userIdToDisallow: " + targetId);
+        //Log.d(TAG, "Email to be disallowed: " + email + ", userIdToDisallow: " + targetId);
 
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
@@ -263,7 +263,7 @@ public class ServerApi {
      */
     public static void ignoreUsers(final Context context, String email) {
 
-        Log.d(TAG, "ignoreUsers");
+        //Log.d(TAG, "ignoreUsers");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -275,7 +275,7 @@ public class ServerApi {
         JSONids.put(targetId);
 
         if (targetId == null) {
-            Log.e(TAG, "Attempted to ignore invalid email");
+            //Log.e(TAG, "Attempted to ignore invalid email");
             return;
         }
         JSONObject JSONdata = new JSONObject();
@@ -283,18 +283,18 @@ public class ServerApi {
                     JSONdata.put("ids", JSONids);
         }
         catch (JSONException e){
-            Log.e(TAG, "Error creating ignore request: " + e);
+            //Log.e(TAG, "Error creating ignore request: " + e);
             return;
         }
 
-        Log.d(TAG, "IDs to be ignored: " + JSONdata);
+        //Log.d(TAG, "IDs to be ignored: " + JSONdata);
 
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
                 logStatus("ignoreUsers", status);
                 if (status.getError() == null) {
-                    Log.d(TAG, "Getting new contacts");
+                    //Log.d(TAG, "Getting new contacts");
                     DataService.getContacts(context);
                 }
             }
@@ -311,7 +311,7 @@ public class ServerApi {
      */
     public static void unignoreUser(final Context context, String email) {
 
-        Log.d(TAG, "unignoreUser");
+        //Log.d(TAG, "unignoreUser");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -320,18 +320,18 @@ public class ServerApi {
         String targetId = Utils.getIdFromEmail(context, email);
 
         if (targetId == null) {
-            Log.e(TAG, "Attempted to unignore invalid email");
+            //Log.e(TAG, "Attempted to unignore invalid email");
             return;
         }
         url += targetId;
-        Log.d(TAG, "Email to be unignored: " + email + ", userIdToDisallow: " + targetId);
+        //Log.d(TAG, "Email to be unignored: " + email + ", userIdToDisallow: " + targetId);
 
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
                 logStatus("ignoreUser", status);
                 if (status.getError() == null) {
-                    Log.d(TAG, "Getting new contacts");
+                    //Log.d(TAG, "Getting new contacts");
                     DataService.getContacts(context);
                 }
             }

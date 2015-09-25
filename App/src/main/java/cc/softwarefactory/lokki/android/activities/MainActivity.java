@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         aq.id(R.id.user_popout_menu_button).clicked(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d(TAG, "Clicked user menu button");
+                //Log.d(TAG, "Clicked user menu button");
                 showUserPopupMenu(v);
             }
         });
@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         //Log.e(TAG, "onStart");
 
         if (firstTimeLaunch()) {
-            Log.i(TAG, "onStart - firstTimeLaunch, so showing terms.");
+            //Log.i(TAG, "onStart - firstTimeLaunch, so showing terms.");
             startActivityForResult(new Intent(this, FirstTimeActivity.class), REQUEST_TERMS);
         } else {
             signUserIn();
@@ -172,9 +172,9 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         String userId = PreferenceUtils.getString(this, PreferenceUtils.KEY_USER_ID);
         String authorizationToken = PreferenceUtils.getString(this, PreferenceUtils.KEY_AUTH_TOKEN);
 
-        Log.i(TAG, "User email: " + userAccount);
-        Log.i(TAG, "User id: " + userId);
-        Log.i(TAG, "authorizationToken: " + authorizationToken);
+        //Log.i(TAG, "User email: " + userAccount);
+        //Log.i(TAG, "User id: " + userId);
+        //Log.i(TAG, "authorizationToken: " + authorizationToken);
 
         return !(userId.isEmpty() || userAccount.isEmpty() || authorizationToken.isEmpty());
     }
@@ -187,12 +187,12 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // WAKE_LOCK
 
         if (!loggedIn()) {
-            Log.i(TAG, "onResume - user NOT logged in, so avoiding launching services.");
+            //Log.i(TAG, "onResume - user NOT logged in, so avoiding launching services.");
             return;
         }
 
 
-        Log.i(TAG, "onResume - user logged in, so launching services.");
+        //Log.i(TAG, "onResume - user logged in, so launching services.");
         startServices();
         LocalBroadcastManager.getInstance(this).registerReceiver(exitMessageReceiver, new IntentFilter("EXIT"));
         LocalBroadcastManager.getInstance(this).registerReceiver(switchToMapReceiver, new IntentFilter("GO-TO-MAP"));
@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
         //Log.e(TAG, "onResume - check if dashboard is null");
         if (MainApplication.dashboard == null) {
-            Log.w(TAG, "onResume - dashboard was null, get dashboard & contacts from server");
+            //Log.w(TAG, "onResume - dashboard was null, get dashboard & contacts from server");
             ServerApi.getDashboard(getApplicationContext());
             ServerApi.getContacts(getApplicationContext());
         }
@@ -243,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
                 startActivityForResult(new Intent(this, SignUpActivity.class), REQUEST_CODE_EMAIL);
             } catch (ActivityNotFoundException e) {
                 Toast.makeText(this, getString(R.string.general_error), Toast.LENGTH_LONG).show();
-                Log.e(TAG, "Could not start SignUpActivity " + e);
+                //Log.e(TAG, "Could not start SignUpActivity " + e);
                 finish();
             }
         } else { // User already logged-in
@@ -458,14 +458,14 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
         if (!allow) {
             try {
                 MainApplication.iDontWantToSee.put(email, 1);
-                Log.d(TAG, MainApplication.iDontWantToSee.toString());
+                //Log.d(TAG, MainApplication.iDontWantToSee.toString());
                 PreferenceUtils.setString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
                 ServerApi.ignoreUsers(this, email);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         } else if (MainApplication.iDontWantToSee.has(email)) {
-            Log.d(TAG, "unignoring user");
+            //Log.d(TAG, "unignoring user");
             MainApplication.iDontWantToSee.remove(email);
             PreferenceUtils.setString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE, MainApplication.iDontWantToSee.toString());
             ServerApi.unignoreUser(this, email);

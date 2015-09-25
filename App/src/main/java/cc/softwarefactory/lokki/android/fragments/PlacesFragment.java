@@ -126,7 +126,7 @@ public class PlacesFragment extends Fragment {
                         v.showContextMenu();
                     }
                 });
-                Log.d(TAG, "Setting up checkbox callback");
+                //Log.d(TAG, "Setting up checkbox callback");
                 aq.id(R.id.buzz_checkBox).clicked(new View.OnClickListener() {
                     @Override
                     public void onClick(final View view) {
@@ -147,7 +147,7 @@ public class PlacesFragment extends Fragment {
 
                                                 MainApplication.buzzPlaces.put(placeBuzz);
                                             } catch (JSONException e) {
-                                                Log.e(TAG, " Error while creating placeBuzz object" + e);
+                                                //Log.e(TAG, " Error while creating placeBuzz object" + e);
 
                                             }
                                         }
@@ -176,7 +176,7 @@ public class PlacesFragment extends Fragment {
 
                                 }
                             } catch (JSONException e) {
-                                Log.e(TAG, "Error while modifying the buzz places" + e);
+                                //Log.e(TAG, "Error while modifying the buzz places" + e);
 
                             }
                         }
@@ -192,7 +192,7 @@ public class PlacesFragment extends Fragment {
                             aq.id(R.id.buzz_checkBox).checked(true);
                         }
                     } catch (JSONException e) {
-                        Log.e(TAG, "Error while checking the buzz places" + e);
+                        //Log.e(TAG, "Error while checking the buzz places" + e);
 
                     }
                 }

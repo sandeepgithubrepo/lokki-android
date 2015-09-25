@@ -188,8 +188,8 @@ public class AddContactsFragment extends Fragment {
                 super.onPostExecute(MainApplication.contacts);
                 return;
             }
-            Log.d(TAG, "Number of contacts: " + (contactsResult.length() - 1));
-            Log.d(TAG, "Contacts: " + contactsResult);
+            //Log.d(TAG, "Number of contacts: " + (contactsResult.length() - 1));
+            //Log.d(TAG, "Contacts: " + contactsResult);
             try {
                 MainApplication.contacts = contactsResult;
                 MainApplication.mapping = MainApplication.contacts.getJSONObject("mapping");

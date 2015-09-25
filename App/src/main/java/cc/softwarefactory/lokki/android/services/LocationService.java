@@ -257,7 +257,7 @@ public class LocationService extends Service implements LocationListener, Google
                 }
                 catch (JSONException e)
                 {
-                    Log.e(TAG,"Error in checking buzz places"+e);
+                    //Log.e(TAG,"Error in checking buzz places"+e);
                 }
 
             }
