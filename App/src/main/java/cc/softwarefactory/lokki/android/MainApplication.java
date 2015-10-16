@@ -41,7 +41,6 @@ public class MainApplication extends Application {
      * TODO: make private with proper accessor methods to disallow values not in mapTypes
      */
     public static int mapType = 0;
-    public static String mapValue;
     public static String emailBeingTracked;
     /**
      * User dashboard JSON object. Format:
@@ -105,12 +104,41 @@ public class MainApplication extends Application {
      * }
      */
     public static JSONObject iDontWantToSee;
+    /**
+     * Is the user visible to others?
+     */
     public static Boolean visible = true;
     public static LruCache<String, Bitmap> avatarCache;
+    /**
+     * The user's places. Format:
+     * {
+     *      "f414af16-e532-49d2-999f-c3bdd160dca4":{
+     *          "lat":11.17839332191203,
+     *          "lon":1.4752149581909178E-5,
+     *          "rad":6207030,
+     *          "name":"1",
+     *          "img":""
+     *      },
+     *      "b0d77236-cdad-4a25-8cca-47b4426d5f1f":{
+     *          "lat":11.17839332191203,
+     *          "lon":1.4752149581909178E-5,
+     *          "rad":6207030,
+     *          "name":"1",
+     *          "img":""
+     *      },
+     *      "1f1a3303-5964-40d5-bd07-3744a0c0d0f7":{
+     *          "lat":11.17839332191203,
+     *          "lon":1.4752149581909178E-5,
+     *          "rad":6207030,
+     *          "name":"3",
+     *          "img":""
+     *      }
+     * }
+     */
     public static JSONObject places;
     public static boolean locationDisabledPromptShown;
     public static JSONArray buzzPlaces;
-
+    public static boolean firstTimeZoom = true;
 
     @Override
     public void onCreate() {
@@ -133,21 +161,6 @@ public class MainApplication extends Application {
                 return (bitmap.getRowBytes() * bitmap.getHeight()) / 1024;
             }
         };
-
-
-        // get mapValue from preferences
-        mapValue = PreferenceUtils.getString(getApplicationContext(), PreferenceUtils.KEY_SETTING_MAP_MODE);
-
-        if(!mapValue.isEmpty()){
-            try{
-                mapType = Integer.parseInt(mapValue); // set mapValue to mapType
-            }catch (Error e){
-                mapType = 0;
-            }
-        }else {
-            mapType = 0; // if empty set to default
-        }
-
 
         String iDontWantToSeeString = PreferenceUtils.getString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE);
         if (!iDontWantToSeeString.isEmpty()) {
@@ -184,7 +197,15 @@ public class MainApplication extends Application {
     private void loadSetting() {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         visible = PreferenceUtils.getBoolean(getApplicationContext(), PreferenceUtils.KEY_SETTING_VISIBILITY);
-        //Log.e(TAG, "Visible: " + visible);
-    }
+        Log.d(TAG, "Visible: " + visible);
 
+        // get mapValue from preferences
+        try {
+            mapType = Integer.parseInt(PreferenceUtils.getString(getApplicationContext(), PreferenceUtils.KEY_SETTING_MAP_MODE));
+        }
+        catch (NumberFormatException e){
+            mapType = mapTypes[0];
+            Log.w(TAG, "Could not parse map type; using default value: " + e);
+        }
+    }
 }

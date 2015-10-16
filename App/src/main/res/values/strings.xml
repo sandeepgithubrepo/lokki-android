@@ -54,14 +54,16 @@
     <string name="write_place_name">Enter a name for this place</string>
     <string name="delete_place">Do you want to remove this place?</string>
     <string name="will_be_deleted_from_places">will be removed from your places</string>
-    <string name="rename_place">Rename %1$s?</string>
+    <string name="delete_contact">Do you want to remove this contact?</string>
+    <string name="will_be_deleted_from_contacts">will be removed from your contacts</string>
+    <string name="rename_prompt">Rename %1$s?</string>
     <string name="place_created">Place created</string>
     <string name="place_removed">Place removed</string>
     <string name="place_renamed">Place renamed </string>
     <string name="place_limit_reached">You cannot create more places. Maximum limit reached.</string>
     <string name="you_are_visible">You are now VISIBLE</string>
     <string name="you_are_invisible">You are now INVISIBLE</string>
-    <string name="places_how_to_create">To create a new place go to the map and long press the location where the place is located. Zoom the map to change the location\'s size, type a name and click OK.</string>
+    <string name="places_how_to_create">To create a new place go to the map and long press the location where the place is located.</string>
     <string name="search_contacts">Search contacts…</string>
     <string name="buzz_place">Buzz..</string>
 
@@ -73,6 +75,7 @@
     <string name="email_required">An email address is required.</string>
     <string name="required">Required</string>
     <string name="place_name_already_in_use">Name is already in use</string>
+    <string name="place_name_too_long">Place has too long name.</string>
     <string name="add_place">Add place</string>
     <string name="add_place_hint">Hint:You can zoom and pan the map to adjust the location.</string>
     <string name="gps_disabled">Lokki needs access to your location. Please turn on location access.</string>
@@ -94,9 +97,16 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="confirm_buzz">Do you want us to alert you when you reach this place?</string>
+    <string name="place_adding_tip">Long press on map to add new place.</string>
+    <string name="search_lable">Search bar</string>
+    <string name="search_hint">Search contacts, places or map locations</string>
+    <string name="search_results">Search results for: </string>
+    <string name="no_search_results">No results found</string>
+    <string name="you_have_arrived">You have arrived to your destination.</string>
 
     <string translatable="false" name="lokki_github_io_link">https://thesoftwarefactory.github.io/lokki/</string>
     <string translatable="false" name="lokki_play_store_link">market://details?id=cc.softwarefactory.lokki.android</string>
     <string translatable="false" name="sign_out_button_key">signOutButton</string>
+    <string name="rename_contact">Enter contact name:</string>
 
 </resources>

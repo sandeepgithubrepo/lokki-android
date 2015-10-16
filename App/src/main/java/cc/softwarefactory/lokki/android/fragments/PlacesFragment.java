@@ -4,6 +4,7 @@ See LICENSE for details
 */
 package cc.softwarefactory.lokki.android.fragments;
 
+import android.app.Dialog;
 import android.support.v7.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -31,13 +32,14 @@ import android.widget.ListView;
 
 import com.androidquery.AQuery;
 
-import cc.softwarefactory.lokki.android.activities.MainActivity;
+import cc.softwarefactory.lokki.android.activities.BuzzActivity;
 import cc.softwarefactory.lokki.android.utilities.AnalyticsUtils;
 import cc.softwarefactory.lokki.android.utilities.ServerApi;
 import cc.softwarefactory.lokki.android.services.DataService;
 import cc.softwarefactory.lokki.android.MainApplication;
 import cc.softwarefactory.lokki.android.R;
 import cc.softwarefactory.lokki.android.utilities.PreferenceUtils;
+import cc.softwarefactory.lokki.android.utilities.Utils;
 
 import com.makeramen.roundedimageview.RoundedImageView;
 
@@ -48,7 +50,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.jar.JarException;
 
 
 public class PlacesFragment extends Fragment {
@@ -109,6 +110,7 @@ public class PlacesFragment extends Fragment {
 
         //Log.d(TAG, "setListAdapter");
 
+        final PlacesFragment placesFragment = this;
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, R.layout.places_row_layout, placesList) {
 
             @Override
@@ -126,59 +128,59 @@ public class PlacesFragment extends Fragment {
                         v.showContextMenu();
                     }
                 });
-                //Log.d(TAG, "Setting up checkbox callback");
+                Log.d(TAG, "Setting up checkbox callback");
+                Iterator<String> keys = MainApplication.places.keys();
+                String tempId = "";
+                while(keys.hasNext()) {
+                    String key = keys.next();
+                    try {
+                        JSONObject place = MainApplication.places.getJSONObject(key);
+                        if (place.getString("name").equals(placeName)) {
+                            tempId = key;
+                        }
+                    }
+                    catch (JSONException e)
+                    {
+                        Log.e(TAG, " Error while loading place id" + e);
+                    }
+                }
+                final String id = tempId;
+
                 aq.id(R.id.buzz_checkBox).clicked(new View.OnClickListener() {
                     @Override
                     public void onClick(final View view) {
+
                         if (((CheckBox) view).isChecked()) {
-                            new AlertDialog.Builder(getActivity())
+                            // This ensures that automatic UI refresh won't uncheck the checkbox
+                            // while the the dialog is still open.
+                            BuzzActivity.setBuzz(id, 0);
+
+                            Dialog dialog = new AlertDialog.Builder(getActivity())
                                     .setMessage(R.string.confirm_buzz)
                                     .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialogInterface, int which) {
-
                                             AnalyticsUtils.eventHit(getString(R.string.analytics_category_ux),
-                                            getString(R.string.analytics_action_click),
-                                                    getString(R.string.analytics_label_buzz_turn_on));
-                                            JSONObject placeBuzz = new JSONObject();
-                                            try {
-                                                placeBuzz.put("name", placeName);
-                                                placeBuzz.put("buzzcount", 5);
-
-                                                MainApplication.buzzPlaces.put(placeBuzz);
-                                            } catch (JSONException e) {
-                                                //Log.e(TAG, " Error while creating placeBuzz object" + e);
-
-                                            }
+                                                getString(R.string.analytics_action_click),
+                                                getString(R.string.analytics_label_buzz_turn_on));
+                                            BuzzActivity.setBuzz(id, 5);
                                         }
                                     })
                                     .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialogInterface, int which) {
+                                            BuzzActivity.removeBuzz(id);
+                                            ((CheckBox) view).setChecked(false);
+                                            placesFragment.showPlaces();  // Update UI for tests
                                             AnalyticsUtils.eventHit(getString(R.string.analytics_category_ux),
                                                     getString(R.string.analytics_action_click),
                                                     getString(R.string.analytics_label_buzz_decline));
-                                            ((CheckBox) view).toggle();
                                         }
-                                    })
-                                    .show();
-
-
+                                    }).create();
+                            dialog.setCanceledOnTouchOutside(false);
+                            dialog.show();
                         } else {
-                            try {
-                                for (int i = 0; i < MainApplication.buzzPlaces.length(); i++) {
-
-                                    if (MainApplication.buzzPlaces.getJSONObject(i).getString("name").equals(placeName)) {
-
-                                        MainApplication.buzzPlaces.put(i, MainApplication.buzzPlaces.getJSONObject(MainApplication.buzzPlaces.length() - 1));
-                                        MainApplication.buzzPlaces.remove(MainApplication.buzzPlaces.length() - 1);
-                                    }
-
-                                }
-                            } catch (JSONException e) {
-                                //Log.e(TAG, "Error while modifying the buzz places" + e);
-
-                            }
+                            BuzzActivity.removeBuzz(id);
                         }
 
                     }
@@ -187,7 +189,7 @@ public class PlacesFragment extends Fragment {
                 for (int i=0;i<MainApplication.buzzPlaces.length();i++)
                 {
                     try {
-                        if (MainApplication.buzzPlaces.getJSONObject(i).getString("name").equals(placeName)) {
+                        if (MainApplication.buzzPlaces.getJSONObject(i).getString("placeid").equals(id)) {
 
                             aq.id(R.id.buzz_checkBox).checked(true);
                         }
@@ -249,7 +251,7 @@ public class PlacesFragment extends Fragment {
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
-        AdapterContextMenuInfo info = (AdapterContextMenuInfo)item.getMenuInfo();
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
         int position = info.position;
         String placeName = placesList.get(position);
 
@@ -321,7 +323,7 @@ public class PlacesFragment extends Fragment {
 
         //Log.d(TAG, "renamePlaceDialog");
         final EditText input = new EditText(getActivity());
-        String titleFormat = getString(R.string.rename_place);
+        String titleFormat = getString(R.string.rename_prompt);
         String title = String.format(titleFormat, placeName);
 
         new AlertDialog.Builder(getActivity())
@@ -349,7 +351,16 @@ public class PlacesFragment extends Fragment {
                 .show();
     }
 
-    private void renamePlace(String oldName, String newName) {
+    static public void renamePlaceLocally(final String key, JSONObject placeObj) {
+        try {
+            MainApplication.places.remove(key);
+            MainApplication.places.put(key, placeObj);
+        } catch(Exception e) {
+            Log.e(TAG, "renamePlaceLocally() failed.");
+        }
+    }
+
+    private void renamePlace(final String oldName, final String newName) {
 
         //Log.d(TAG, "renamePlace");
         try {

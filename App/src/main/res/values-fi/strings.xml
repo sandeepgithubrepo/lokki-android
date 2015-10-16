@@ -55,7 +55,7 @@
     <string name="write_place_name">Anna paikalle nimi</string>
     <string name="delete_place">Haluatko varmasti poistaa tämän paikan?</string>
     <string name="will_be_deleted_from_places">poistetaan paikoistasi</string>
-    <string name="rename_place">Nimeä uudelleen %1$s?</string>
+    <string name="rename_prompt">Nimeä uudelleen %1$s?</string>
     <string name="place_created">Paikka luotu</string>
     <string name="place_removed">Paikka poistettu</string>
     <string name="add_place_hint">Vinkki: Zoomaaminen sisään ja ulos auttaa määrittämään paikan koon.</string>
@@ -74,6 +74,7 @@
     <string name="email_required">Sähköpostiosoite on pakollinen.</string>
     <string name="required">Pakollinen</string>
     <string name="place_name_already_in_use">Nimi on jo käytössä</string>
+    <string name="place_name_too_long">Paikan nimi on liian pitkä.</string>
     <string name="add_place">Lisää paikka</string>
     <string name="gps_disabled">Lokki haluaa käyttää sijaintiasi. Ota sijaintipalvelut käyttöön.</string>
     <string name="ignore">Ohita</string>
@@ -94,5 +95,14 @@
     <string name="yes">Kyllä</string>
     <string name="no">Ei</string>
     <string name="confirm_buzz">Haluatko hälytyksen kun saavut tähän paikkaan?</string>
+    <string name="place_adding_tip">Paina pitkään karttaa lisätäksesi paikan.</string>
+    <string name="delete_contact">Haluatko poistaa tämän yhteystiedon?</string>
+    <string name="will_be_deleted_from_contacts">poistetaan yhteystiedoistasi</string>
+    <string name="search_hint">Hae yhteystietoja, paikkoja tai karttasijainteja</string>
+    <string name="search_lable">Hakupalkki</string>
+    <string name="no_search_results">Ei hakutuloksia</string>
+    <string name="search_results">Tulokset haulla:</string>
+    <string name="rename_contact">Anna nimi yhteystiedolle:</string>
+    <string name="you_have_arrived">Olet saapunut määränpäähäsi.</string>
 
 </resources>
