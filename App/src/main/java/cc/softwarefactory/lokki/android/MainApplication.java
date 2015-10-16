@@ -197,7 +197,7 @@ public class MainApplication extends Application {
     private void loadSetting() {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         visible = PreferenceUtils.getBoolean(getApplicationContext(), PreferenceUtils.KEY_SETTING_VISIBILITY);
-        Log.d(TAG, "Visible: " + visible);
+        //Log.d(TAG, "Visible: " + visible);
 
         // get mapValue from preferences
         try {
@@ -205,7 +205,7 @@ public class MainApplication extends Application {
         }
         catch (NumberFormatException e){
             mapType = mapTypes[0];
-            Log.w(TAG, "Could not parse map type; using default value: " + e);
+            //Log.w(TAG, "Could not parse map type; using default value: " + e);
         }
     }
 }

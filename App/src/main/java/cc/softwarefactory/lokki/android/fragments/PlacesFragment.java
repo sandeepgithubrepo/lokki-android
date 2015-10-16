@@ -128,7 +128,7 @@ public class PlacesFragment extends Fragment {
                         v.showContextMenu();
                     }
                 });
-                Log.d(TAG, "Setting up checkbox callback");
+                //Log.d(TAG, "Setting up checkbox callback");
                 Iterator<String> keys = MainApplication.places.keys();
                 String tempId = "";
                 while(keys.hasNext()) {
@@ -141,7 +141,7 @@ public class PlacesFragment extends Fragment {
                     }
                     catch (JSONException e)
                     {
-                        Log.e(TAG, " Error while loading place id" + e);
+                        //Log.e(TAG, " Error while loading place id" + e);
                     }
                 }
                 final String id = tempId;
@@ -356,7 +356,7 @@ public class PlacesFragment extends Fragment {
             MainApplication.places.remove(key);
             MainApplication.places.put(key, placeObj);
         } catch(Exception e) {
-            Log.e(TAG, "renamePlaceLocally() failed.");
+            //Log.e(TAG, "renamePlaceLocally() failed.");
         }
     }
 

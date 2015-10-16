@@ -141,7 +141,7 @@ public class MapViewFragment extends Fragment {
     //store current map state on SharedPreferences
     public void storeMapState(){
         if (map == null){
-            Log.w(TAG, "No map, can't save current location");
+            //Log.w(TAG, "No map, can't save current location");
             return;
         }
         Double lat = map.getCameraPosition().target.latitude;
@@ -163,7 +163,7 @@ public class MapViewFragment extends Fragment {
             lat = Double.parseDouble(prefs.getString("lat", "0.0"));
             lon = Double.parseDouble(prefs.getString("lon", "0.0"));
         } catch(Exception e){
-            Log.d(TAG, "Error Parsing saved coordinates" + e );
+            //Log.d(TAG, "Error Parsing saved coordinates" + e );
             lat = 0.0;
             lon = 0.0;
         }
@@ -250,7 +250,7 @@ public class MapViewFragment extends Fragment {
         map = fragment.getMap();
 
         if (map == null) {
-            Log.e(TAG, "Could not create map!");
+            //Log.e(TAG, "Could not create map!");
             return;
         }
 
@@ -432,15 +432,15 @@ public class MapViewFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (map == null){
-                Log.w(TAG, "null map, not moving camera");
+                //Log.w(TAG, "null map, not moving camera");
                 return;
             }
-            Log.d(TAG, "goToReceiver onReceive");
+            //Log.d(TAG, "goToReceiver onReceive");
             //Parse coordinates from extra data
             String coords = intent.getStringExtra(GO_TO_COORDS);
             int separator = coords.indexOf(',');
             if (separator == -1){
-                Log.e(TAG, "Invalid coordinates, no separator");
+                //Log.e(TAG, "Invalid coordinates, no separator");
                 return;
             }
             double lat, lon;
@@ -449,7 +449,7 @@ public class MapViewFragment extends Fragment {
                 lon = Double.parseDouble(coords.substring(separator +1));
             }
             catch (NumberFormatException e){
-                Log.e(TAG, "Could not parse coordinates");
+                //Log.e(TAG, "Could not parse coordinates");
                 return;
             }
             //If we're tracking a contact, untrack them to prevent the camera from focusing on them

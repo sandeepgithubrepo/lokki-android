@@ -194,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
         super.onResume();
         paused = false;
-        Log.d(TAG, "onResume");
+        //Log.d(TAG, "onResume");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // WAKE_LOCK
 
         if (!loggedIn()) {
@@ -252,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
      */
     private void setLocationServiceAccuracyLevel(){
         if (mBoundLocationService == null){
-            Log.i(TAG, "location service not yet bound, not changing accuracy");
+            //Log.i(TAG, "location service not yet bound, not changing accuracy");
         }
         mBoundLocationService.setLocationCheckAccuracy(currentAccuracy);
     }
@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         final Activity mainactivity = this;
-        Log.d(TAG,"onPrepareOptionsMenu");
+        //Log.d(TAG,"onPrepareOptionsMenu");
         menu.clear();
         if (mNavigationDrawerFragment != null && !mNavigationDrawerFragment.isDrawerOpen()) {
             if (selectedOption == 0) { // Map
@@ -460,7 +460,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
                         //Launch search activity
                         Intent intent= new Intent(mainactivity,SearchActivity.class);
-                        Log.d(TAG,"Search Query submitted");
+                        //Log.d(TAG,"Search Query submitted");
                         intent.putExtra(SearchActivity.QUERY_MESSAGE, query);
                         startActivity(intent);
                         return  true;

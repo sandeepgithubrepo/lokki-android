@@ -116,7 +116,7 @@ public class Utils {
 
         if (loadContacts(context)) {
             try {
-                Log.d(TAG, MainApplication.contacts.toString());
+                //Log.d(TAG, MainApplication.contacts.toString());
                 String name = MainApplication.contacts.getJSONObject(email).getString("name");
                 //Log.e(TAG, "getNameFromEmail - Email: " + email + ", Name: " + name);
                 return name;
@@ -347,7 +347,7 @@ public class Utils {
 
                 } catch (JSONException e) {
 
-                Log.e(TAG,"Error in moving items into new JSON Array" +e);
+                //Log.e(TAG,"Error in moving items into new JSON Array" +e);
                 }
             }
         }

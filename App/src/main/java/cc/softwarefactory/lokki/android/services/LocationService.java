@@ -102,7 +102,7 @@ public class LocationService extends Service implements LocationListener, Google
         //Log.e(TAG, "start Service called");
 
         if (serviceRunning) { // If service is running, no need to start it again.
-            Log.w(TAG, "Service already running...");
+            //Log.w(TAG, "Service already running...");
             return;
         }
         context.startService(new Intent(context, LocationService.class));
@@ -203,29 +203,29 @@ public class LocationService extends Service implements LocationListener, Google
     public void setLocationCheckAccuracy(LocationAccuracy acc){
         currentAccuracy = acc;
         if (mGoogleApiClient == null || !mGoogleApiClient.isConnected()){
-            Log.i(TAG, "Google API client not yet initialized, so not requesting updates yet");
+            //Log.i(TAG, "Google API client not yet initialized, so not requesting updates yet");
             return;
         }
 
         LocationRequest req;
         switch (acc){
             case ACCURATE:{
-                Log.d(TAG, "Setting location request accuracy to accurate");
+                //Log.d(TAG, "Setting location request accuracy to accurate");
                 req = locationRequestAccurate;
                 break;
             }
             case BGACCURATE:{
-                Log.d(TAG, "Setting location request accuracy to background accurate");
+                //Log.d(TAG, "Setting location request accuracy to background accurate");
                 req = locationRequestBGAccurate;
                 break;
             }
             case BGINACCURATE:{
-                Log.d(TAG, "Setting location request accuracy to background inaccurate");
+                //Log.d(TAG, "Setting location request accuracy to background inaccurate");
                 req = locationRequestBGInaccurate;
                 break;
             }
             default:{
-                Log.wtf(TAG, "Unknown location accuracy level");
+                //Log.wtf(TAG, "Unknown location accuracy level");
                 throw new IllegalArgumentException("Unknown location accuracy level");
             }
 
@@ -262,7 +262,7 @@ public class LocationService extends Service implements LocationListener, Google
 
     @Override
     public void onConnected(Bundle bundle) {
-        Log.d(TAG, "locationClient connected");
+        //Log.d(TAG, "locationClient connected");
         //Set location update accuracy to whichever value was set last
         setLocationCheckAccuracy(currentAccuracy);
         Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
@@ -343,7 +343,7 @@ public class LocationService extends Service implements LocationListener, Google
                     if(placeBuzz == null || placeBuzz.getInt("buzzcount") <= 0) {
                         break;
                     }
-                    Log.d(TAG, "Vibrating...");
+                    //Log.d(TAG, "Vibrating...");
                     Vibrator v = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                     v.vibrate(1000);
                     Thread.sleep(2500);
@@ -366,7 +366,7 @@ public class LocationService extends Service implements LocationListener, Google
                 startActivity(i);
                 showArrivalNotification();
 
-                Log.d(TAG, "Starting vibration...");
+                //Log.d(TAG, "Starting vibration...");
                 new Thread(new VibrationThread(placeBuzz.getString("placeid"))).start();
             }
         }
@@ -414,7 +414,7 @@ public class LocationService extends Service implements LocationListener, Google
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "onDestroy called");
+        //Log.d(TAG, "onDestroy called");
         if(wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }

@@ -231,7 +231,7 @@ public class ServerApi {
             aq.post(url, JSONdata, String.class, cb);
         }
         catch(JSONException e) {
-            Log.e(TAG, "JSON error in allowPeople()");
+            //Log.e(TAG, "JSON error in allowPeople()");
         }
     }
 
@@ -368,7 +368,7 @@ public class ServerApi {
      * @param newName   The new namce for the contact
      */
     public static void renameContact(final Context context, String email, String newName){
-        Log.d(TAG, "Rename contact");
+        //Log.d(TAG, "Rename contact");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -376,7 +376,7 @@ public class ServerApi {
         String url = ApiUrl + "user/" + userId + "/rename/";
         String targetId = Utils.getIdFromEmail(context, email);
         if (targetId == null) {
-            Log.e(TAG, "Attempted to rename invalid contact");
+            //Log.e(TAG, "Attempted to rename invalid contact");
             return;
         }
         url += targetId;
@@ -386,7 +386,7 @@ public class ServerApi {
             JSONdata.put("name", newName);
         }
         catch (JSONException e){
-            Log.e(TAG, "Error creating ignore request: " + e);
+            //Log.e(TAG, "Error creating ignore request: " + e);
             return;
         }
 
@@ -395,7 +395,7 @@ public class ServerApi {
             public void callback(String url, String result, AjaxStatus status) {
                 logStatus("renameContact callback", status);
                 if (status.getError() == null) {
-                    Log.d(TAG, "Getting new contacts");
+                    //Log.d(TAG, "Getting new contacts");
                     DataService.getContacts(context);
                 }
             }
@@ -410,7 +410,7 @@ public class ServerApi {
      * @param email     The email address of the contact to be removed
      */
     public static void removeContact(final Context context, String email) {
-        Log.d(TAG, "Remove contact");
+        //Log.d(TAG, "Remove contact");
         AQuery aq = new AQuery(context);
 
         String userId = PreferenceUtils.getString(context, PreferenceUtils.KEY_USER_ID);
@@ -419,18 +419,18 @@ public class ServerApi {
         String targetId = Utils.getIdFromEmail(context, email);
 
         if (targetId == null) {
-            Log.e(TAG, "Attempted to delete invalid email");
+            //Log.e(TAG, "Attempted to delete invalid email");
             return;
         }
         url += targetId;
-        Log.d(TAG, "Email to be removed: " + email + ", userIdToRemove: " + targetId);
+        //Log.d(TAG, "Email to be removed: " + email + ", userIdToRemove: " + targetId);
 
         AjaxCallback<String> cb = new AjaxCallback<String>() {
             @Override
             public void callback(String url, String result, AjaxStatus status) {
                 logStatus("removeContact", status);
                 if (status.getError() == null) {
-                    Log.d(TAG, "Getting new contacts");
+                    //Log.d(TAG, "Getting new contacts");
                     DataService.getContacts(context);
                 }
             }
