@@ -4,6 +4,11 @@ See LICENSE for details
 */
 package cc.softwarefactory.lokki.android.activities;
 
+import android.app.Activity;
+import android.content.ComponentName;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -27,16 +32,18 @@ import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.support.v7.widget.SearchView;
 import android.widget.Toast;
 
 import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxCallback;
+import com.androidquery.callback.AjaxStatus;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import cc.softwarefactory.lokki.android.MainApplication;
 import cc.softwarefactory.lokki.android.R;
-import cc.softwarefactory.lokki.android.ResultListener;
 import cc.softwarefactory.lokki.android.datasources.contacts.ContactDataSource;
 import cc.softwarefactory.lokki.android.datasources.contacts.DefaultContactDataSource;
 import cc.softwarefactory.lokki.android.fragments.AboutFragment;
@@ -75,6 +82,9 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
     private int selectedOption = 0;
 
     private ContactDataSource mContactDataSource;
+
+    //Is this activity currently paused?
+    private boolean paused = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,7 +193,8 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
     protected void onResume() {
 
         super.onResume();
-        //Log.e(TAG, "onResume");
+        paused = false;
+        //Log.d(TAG, "onResume");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // WAKE_LOCK
 
         if (!loggedIn()) {
@@ -204,17 +215,108 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
             ServerApi.getDashboard(getApplicationContext());
             ServerApi.getContacts(getApplicationContext());
         }
+
     }
 
+    //-------------Location service interface-------------
 
-    private void startServices() {
-
-        if (MainApplication.visible) {
-            LocationService.start(this.getApplicationContext());
+    /**
+     * Reference to currently bound location service instance
+     */
+    private LocationService mBoundLocationService;
+    /**
+     * Currently selected location update accuracy level
+     * Will be sent to the service when setLocationServiceAccuracyLevel is called
+     */
+    private LocationService.LocationAccuracy currentAccuracy = LocationService.LocationAccuracy.BGINACCURATE;
+    /**
+     * Connection object in charge of fetching location service instances
+     */
+    private ServiceConnection mLocationServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mBoundLocationService = ((LocationService.LocationBinder)service).getService();
+            //Set accuracy level as soon as we're connected
+            setLocationServiceAccuracyLevel();
         }
 
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mBoundLocationService = null;
+        }
+    };
+
+    /**
+     * Sends currently selected accuracy level (in currentAccuracy) to the location service if it's initialized.
+     * Called automatically when the service is first initialized.
+     */
+    private void setLocationServiceAccuracyLevel(){
+        if (mBoundLocationService == null){
+            //Log.i(TAG, "location service not yet bound, not changing accuracy");
+        }
+        mBoundLocationService.setLocationCheckAccuracy(currentAccuracy);
+    }
+
+    /**
+     * Creates a connection to the location service.
+     * Calls mLocationServiceConnection.onServiceConnected when done.
+     */
+    private void bindLocationService(){
+        bindService(new Intent(this, LocationService.class), mLocationServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    /**
+     * Removes connection to location service.
+     * Calls mLocationServiceConnection.onServiceDisconnected when done.
+     */
+    private void unbindLocationService(){
+        if (mBoundLocationService != null){
+            unbindService(mLocationServiceConnection);
+        }
+    }
+
+    /**
+     * Sets an appropriate location update accuracy for background updates.
+     * Call setLocationServiceAccuracyLevel() afterwards to send it to the service.
+     */
+    private void setBackgroundLocationAccuracy(){
+        if (MainApplication.buzzPlaces.length() > 0){
+            currentAccuracy = LocationService.LocationAccuracy.BGACCURATE;
+        }
+        else {
+            currentAccuracy = LocationService.LocationAccuracy.BGINACCURATE;
+        }
+    }
+
+    //-------------Location service interface ends-------------
+
+    /**
+     * Launches background services if they aren't already running
+     */
+    private void startServices() {
+
+        //Start location service
+        LocationService.start(this.getApplicationContext());
+
+        //Set appropriate location update accuracy
+        if (!paused){
+            currentAccuracy = LocationService.LocationAccuracy.ACCURATE;
+        }
+        else {
+            setBackgroundLocationAccuracy();
+        }
+
+        //Create a connection to the location service if it doesn't already exist, else set new location check accuracy
+        if (mBoundLocationService == null){
+            bindLocationService();
+        } else {
+            setLocationServiceAccuracyLevel();
+        }
+
+        //Start data service
         DataService.start(this.getApplicationContext());
 
+        //Request updates from server
         try {
             ServerApi.requestUpdates(this.getApplicationContext());
         } catch (JSONException e) {
@@ -224,13 +326,29 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
     @Override
     protected void onPause() {
+        paused = true;
         // Fixes buggy avatars after leaving the app from the "Map" screen
         MainApplication.avatarCache.evictAll();
-        LocationService.stop(this.getApplicationContext());
-        DataService.stop(this.getApplicationContext());
+        //LocationService.stop(this.getApplicationContext());
+        //DataService.stop(this.getApplicationContext());
         LocalBroadcastManager.getInstance(this).unregisterReceiver(switchToMapReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(exitMessageReceiver);
         super.onPause();
+        //Set location update accuracy to low if the service has been initialized
+        if (mBoundLocationService != null) {
+            setBackgroundLocationAccuracy();
+            setLocationServiceAccuracyLevel();
+        }
+    }
+
+    @Override
+    protected void onDestroy()
+    {
+        LocationService.stop(this.getApplicationContext());
+        DataService.stop(this.getApplicationContext());
+        //Remove connection to LocationService
+        unbindLocationService();
+        super.onDestroy();
     }
 
     /**
@@ -305,7 +423,8 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-
+        final Activity mainactivity = this;
+        //Log.d(TAG,"onPrepareOptionsMenu");
         menu.clear();
         if (mNavigationDrawerFragment != null && !mNavigationDrawerFragment.isDrawerOpen()) {
             if (selectedOption == 0) { // Map
@@ -319,6 +438,37 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
                         menuItem.setIcon(R.drawable.ic_visibility_off_white_48dp);
                     }
                 }
+
+                //Set up the search bar
+                final SearchView searchView=(SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.search));
+                searchView.setQueryHint(getString(R.string.search_hint));
+                searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener(){
+
+                    @Override
+                    public boolean onQueryTextChange(String newText)
+                    {
+
+                        return true;
+                    }
+                    @Override
+                    public boolean onQueryTextSubmit(String query)
+                    {
+                        //Removes focus from the search field in order to prevent multiple key events from
+                        //launching this callback. See:
+                        //http://stackoverflow.com/questions/17874951/searchview-onquerytextsubmit-runs-twice-while-i-pressed-once
+                        searchView.clearFocus();
+
+                        //Launch search activity
+                        Intent intent= new Intent(mainactivity,SearchActivity.class);
+                        //Log.d(TAG,"Search Query submitted");
+                        intent.putExtra(SearchActivity.QUERY_MESSAGE, query);
+                        startActivity(intent);
+                        return  true;
+                    }
+
+
+                });
+
             } else if (selectedOption == 2) { // Contacts screen
                 getMenuInflater().inflate(R.menu.contacts, menu);
             } else if (selectedOption == -10) { // Add contacts screen
@@ -484,7 +634,13 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
             if (!allow) {
                 ServerApi.disallowUser(this, email);
             } else {
-                ServerApi.allowPeople(this, email, new ResultListener(TAG, "allow user"));
+                final MainActivity activity = this;
+                ServerApi.allowPeople(this, email, new AjaxCallback<String>() {
+                    @Override
+                    public void callback(String url, String result, AjaxStatus status) {
+                        DataService.getDashboard(activity);
+                    }
+                });
             }
         }
 
@@ -552,6 +708,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
                         MainApplication.mapping = null;
                         MainApplication.places = null;
                         MainApplication.iDontWantToSee = new JSONObject();
+                        MainApplication.firstTimeZoom = true;
                         //Restart main activity to clear state
                         main.recreate();
                     }
