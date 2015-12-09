@@ -11,7 +11,6 @@ public class PreferenceUtils {
     public static final String KEY_USER_ACCOUNT = "userAccount";
     public static final String KEY_USER_ID = "userId";
     public static final String KEY_CONTACTS = "contacts";
-    public static final String KEY_I_DONT_WANT_TO_SEE = "iDontWantToSee";
     public static final String KEY_DEVICE_ID = "deviceId";
     public static final String KEY_DASHBOARD = "dashboard";
     public static final String KEY_PLACES = "places";
@@ -23,7 +22,7 @@ public class PreferenceUtils {
     public static final String KEY_NOT_FIRST_TIME_LAUNCH = "notFirstTimeLaunch";
     public static final String KEY_LAT = "lat";
     public static final String KEY_LON = "lon";
-
+    public static final String KEY_USER_PREFERENCE = "userpreference";
     /**
      * Get a string value from default shared preferences
      * @param context Application context
@@ -94,3 +93,4 @@ public class PreferenceUtils {
         return Double.parseDouble(prefs.getString(key, "0.0"));
     }
 }
+
