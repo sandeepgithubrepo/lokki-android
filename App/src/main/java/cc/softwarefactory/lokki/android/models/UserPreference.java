@@ -3,11 +3,8 @@ package cc.softwarefactory.lokki.android.models;
 /**
  * Created by panchamu on 16.11.2015.
  */
-<<<<<<< HEAD
-public class UserPreference extends JSONModel {
-=======
+
 public class UserPreference  {
->>>>>>> 0539557331f639a5032b573c5a512c9421a94c40
 
     private String battery;
     private UserLocation location;
@@ -66,3 +63,4 @@ public class UserPreference  {
 
 
 }
+
