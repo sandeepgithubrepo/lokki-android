@@ -10,6 +10,7 @@ public class User {
     private UserLocation location; // track user location
     private boolean visibility;   // define visibility scope
     private String battery;      // battery status house keeping info
+    private String serverMessage;
 
     public String getBattery() {
         return battery;
@@ -42,4 +43,12 @@ public class User {
         this.location = location;
     }
 
+    public String getServerMessage() {
+        return serverMessage;
+    }
+
+    public void setServerMessage(String serverMessage) {
+        this.serverMessage = serverMessage;
+    }
 }
+
