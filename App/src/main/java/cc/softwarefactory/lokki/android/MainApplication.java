@@ -11,25 +11,17 @@ import android.preference.PreferenceManager;
 import android.support.v4.util.LruCache;
 import android.util.Log;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.android.gms.maps.GoogleMap;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import cc.softwarefactory.lokki.android.models.BuzzPlace;
 import cc.softwarefactory.lokki.android.models.Contact;
-import cc.softwarefactory.lokki.android.models.JSONMap;
 import cc.softwarefactory.lokki.android.models.MainUser;
 import cc.softwarefactory.lokki.android.models.Place;
 import cc.softwarefactory.lokki.android.models.User;
 import cc.softwarefactory.lokki.android.utilities.AnalyticsUtils;
-import cc.softwarefactory.lokki.android.utilities.JsonUtils;
 import cc.softwarefactory.lokki.android.utilities.PreferenceUtils;
 
 public class MainApplication extends Application {
@@ -74,182 +66,25 @@ public class MainApplication extends Application {
      *      "visibility":true
      * }
      */
-    public static class Dashboard extends User {
-        /**
-         * List of user ids that can see me
-         */
-        @JsonProperty("canseeme")
-        private List<String> canSeeMe;
 
-        /**
-         * Map where key is user id and value is the user object. Users that I can see.
-         */
-        @JsonProperty("icansee")
-        private Map<String, User> iCanSee;
-
-        /**
-         * Map between user ids and email addresses.
-         */
-        @JsonProperty("idmapping")
-        private Map<String, String> idMapping;
-
-        public List<String> getUserIdsICanSee() {
-            return new ArrayList<String>(iCanSee.keySet());
-        }
-
-        public List<String> getUserIds() {
-            return new ArrayList<String>(idMapping.keySet());
-        }
-
-        public String getEmailByUserId(String userId) {
-            return idMapping.get(userId);
-        }
-
-        public boolean containsEmail(String email) {
-            for (String containedEmail : idMapping.values()) {
-                if (email.equals(containedEmail)) return true;
-            }
-            return false;
-        }
-
-        public User getUserICanSeeByUserId(String userId) {
-            return iCanSee.get(userId);
-        }
-
-        public List<String> getCanSeeMe() {
-            return canSeeMe;
-        }
-
-        public void setCanSeeMe(List<String> canSeeMe) {
-            this.canSeeMe = canSeeMe;
-        }
-
-        public Map<String, User> getiCanSee() {
-            return iCanSee;
-        }
-
-        public void setiCanSee(Map<String, User> iCanSee) {
-            this.iCanSee = iCanSee;
-        }
-
-        public Map<String, String> getIdMapping() {
-            return idMapping;
-        }
-
-        public void setIdMapping(Map<String, String> idMapping) {
-            this.idMapping = idMapping;
-        }
-    }
-    public static Dashboard dashboard = null;
+    public static User dashboard = null;
 
     public static MainUser user;
 
-    /**
-     * User's contacts is a map, where key is email (which is id) and value is the contact.
-     */
-    @JsonIgnoreProperties("mapping")
-    public static class Contacts extends JSONMap<Contact> {
-
-        private HashMap<String, Contact> contacts = new HashMap<>();
-
-        @Override
-        protected Map<String, Contact> getMap() {
-            return contacts;
-        }
-
-        /**
-         * Handles functionality of the mapping-field. nameToEmail is not mapped from JSON,
-         * because it is easier to keep in sync if it's functionality is handled in this class.
-         */
-        @JsonIgnore
-        private HashMap<String, String> nameToEmail = new HashMap<>();
-
-        public boolean hasEmail(String email) {
-            return contacts.containsKey(email);
-        }
-
-        public List<Contact> contacts() {
-            return new ArrayList<Contact>(contacts.values());
-        }
-
-        public List<String> names() {
-            return new ArrayList<String>(nameToEmail.keySet());
-        }
-
-        public boolean hasName(String name) {
-            return nameToEmail.containsKey(name);
-        }
-
-        public Contact getContactByEmail(String email) {
-            return contacts.get(email);
-        }
-
-        public String getEmailByName(String name) {
-            return nameToEmail.get(name);
-        }
-
-        public void update(String email, Contact contact) {
-            nameToEmail.put(contact.getName(), email);
-            super.put(email, contact);
-        }
-
-        @Override
-        public void clear() {
-            super.clear();
-            nameToEmail.clear();
-        }
-
-        @Override
-        public Contact put(String key, Contact value) {
-            nameToEmail.put(value.getName(), key);
-            return super.put(key, value);
-        }
-
-        @Override
-        public void putAll(Map<? extends String, ? extends Contact> map) {
-            for (Entry<? extends String, ? extends Contact> entry : map.entrySet()) {
-                nameToEmail.put(entry.getValue().getName(), entry.getKey());
-            }
-            super.putAll(map);
-        }
-
-        @Override
-        public Contact remove(Object key) {
-            nameToEmail.remove(super.get(key).getName());
-            return super.remove(key);
-        }
-    }
     public static List<Contact> contacts;
-
-    /**
-     * Contacts that aren't shown on the map. Format:
-     * {
-     *      "test.friend@example.com":1,
-     *      "family.member@example.com":1
-     * }
-     */
-    public static class IDontWantToSee extends JSONMap<Integer> {
-
-        private Map<String, Integer> iDontWantToSee = new HashMap<>();
-
-        @Override
-        protected Map<String, Integer> getMap() {
-            return iDontWantToSee;
-        }
-    }
-    public static IDontWantToSee iDontWantToSee;
     /**
      * Is the user visible to others?
      */
     public static Boolean visible = true;
+
     public static LruCache<String, Bitmap> avatarCache;
 
     public static List<Place> places;
 
     public static boolean locationDisabledPromptShown;
 
-
     public static List<BuzzPlace> buzzPlaces;
+
     public static boolean firstTimeZoom = true;
 
     @Override
@@ -274,19 +109,6 @@ public class MainApplication extends Application {
             }
         };
 
-        String iDontWantToSeeString = PreferenceUtils.getString(this, PreferenceUtils.KEY_I_DONT_WANT_TO_SEE);
-        if (!iDontWantToSeeString.isEmpty()) {
-            try {
-                MainApplication.iDontWantToSee = JsonUtils.createFromJson(iDontWantToSeeString, IDontWantToSee.class);
-            } catch (IOException e) {
-                MainApplication.iDontWantToSee = null;
-                Log.e(TAG, e.getMessage());
-            }
-        } else {
-            MainApplication.iDontWantToSee = new MainApplication.IDontWantToSee();
-        }
-        Log.d(TAG, "MainApplication.iDontWantToSee: " + MainApplication.iDontWantToSee);
-
         if (DEVELOPER_MODE) {
 
             StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
@@ -301,7 +123,7 @@ public class MainApplication extends Application {
                     .build());
         }
 
-        buzzPlaces = new ArrayList<BuzzPlace>();
+        buzzPlaces = new ArrayList<>();
 
         user = new MainUser(this);
 
@@ -312,6 +134,7 @@ public class MainApplication extends Application {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         visible = PreferenceUtils.getBoolean(getApplicationContext(), PreferenceUtils.KEY_SETTING_VISIBILITY);
         Log.d(TAG, "Visible: " + visible);
+        dashboard.setVisibility(visible);
 
         // get mapValue from preferences
         try {
@@ -323,3 +146,4 @@ public class MainApplication extends Application {
         }
     }
 }
+
